@@ -1,0 +1,251 @@
+<script lang="ts">
+  import MapPicker from "$lib/components/MapPicker.svelte";
+  import TelescopeInput from "$lib/components/TelescopeInput.svelte";
+  import DatePicker from "$lib/components/DatePicker.svelte";
+  import { Button } from "$lib/components/ui/button";
+  import { Label } from "$lib/components/ui/label";
+  import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+  } from "$lib/components/ui/card";
+  import * as Tabs from "$lib/components/ui/tabs";
+
+  let lat = -34.6037;
+  let lon = -58.3816;
+  let date = new Date().toISOString().split("T")[0];
+  let telescope = "";
+
+  // Telescope sub-states to handle the component binding if needed,
+  // but the component emits 'change' with the string. We can also bind individual props if we expand validation later.
+  // For now, adhering to the plan where we send the string.
+
+  function handleTelescopeChange(event: CustomEvent<string>) {
+    telescope = event.detail;
+  }
+
+  let loading = false;
+  let error: string | null = null;
+  let generatedPdfUrl: string | null = null;
+
+  async function generatePlan() {
+    loading = true;
+    error = null;
+    generatedPdfUrl = null;
+
+    try {
+      const response = await fetch("http://localhost:8000/generate-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat,
+          lon,
+          date: new Date(date).toISOString(),
+          telescope,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "failed to generate plan");
+      }
+
+      const blob = await response.blob();
+      generatedPdfUrl = URL.createObjectURL(blob);
+    } catch (e: any) {
+      error = e.message;
+    } finally {
+      loading = false;
+    }
+  }
+</script>
+
+<div
+  class="min-h-screen text-foreground flex flex-col items-start py-12 px-6 font-sans selection:bg-accent selection:text-accent-foreground max-w-3xl mx-auto relative z-10"
+>
+  <header class="mb-10 w-full flex items-center gap-4">
+    <div class="shrink-0">
+      <img
+        src="/logo.png"
+        alt="AstroBuddy logo"
+        class="h-20 w-20 object-contain"
+      />
+    </div>
+    <div class="space-y-1">
+      <h1 class="text-4xl font-bold tracking-tight lowercase">astrobuddy</h1>
+      <p class="text-muted-foreground lowercase">observation planning system</p>
+    </div>
+  </header>
+
+  <main class="w-full space-y-8">
+    <Tabs.Root value="session" class="w-full">
+      <Tabs.List
+        class="grid w-full grid-cols-2 border-b border-border rounded-none bg-transparent"
+      >
+        <Tabs.Trigger
+          value="session"
+          class="rounded-none px-4 py-2 text-sm font-medium lowercase data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground data-[state=active]:bg-neutral-900/70"
+        >
+          generador de sesión
+        </Tabs.Trigger>
+        <Tabs.Trigger
+          value="catalog"
+          class="rounded-none px-4 py-2 text-sm font-medium lowercase data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground data-[state=active]:bg-neutral-900/60"
+        >
+          gestión del catálogo astronómico
+        </Tabs.Trigger>
+      </Tabs.List>
+
+      <Tabs.Content value="session" class="mt-6">
+        <Card class="border border-white/10 bg-neutral-900/60 shadow-lg">
+          <CardContent class="p-6 space-y-10">
+            <!-- Location Section -->
+            <section class="space-y-4">
+              <div class="flex items-baseline justify-between">
+                <Label class="text-lg font-medium lowercase">Location</Label>
+                <span class="text-xs text-muted-foreground font-mono">
+                  {lat.toFixed(4)}, {lon.toFixed(4)}
+                </span>
+              </div>
+              <p class="text-sm text-muted-foreground lowercase max-w">
+                set the location as close as possible to your real observing
+                site. this is used for altitude, visibility windows and also for
+                the local weather forecast that feeds the observing plan.
+              </p>
+              <div class="h-96 w-full overflow-hidden">
+                <MapPicker bind:lat bind:lon />
+              </div>
+            </section>
+
+            <!-- Date & Equipment Section -->
+            <section class="space-y-8">
+              <div class="space-y-4">
+                <Label class="text-lg font-medium lowercase">Date</Label>
+                <p class="text-sm text-muted-foreground lowercase max-w">
+                  choose the night you plan to observe. the date is used to
+                  compute object positions, rise and set times and moon phase,
+                  so accurate dates give more realistic time windows.
+                </p>
+                <DatePicker bind:date />
+              </div>
+
+              <div class="space-y-4">
+                <Label class="text-lg font-medium lowercase">Equipment</Label>
+                <p class="text-sm text-muted-foreground lowercase max-w">
+                  describe your telescope as precisely as you can (aperture,
+                  focal length and type). this is used to estimate useful
+                  magnifications, fields of view and recommendations tailored to
+                  your setup.
+                </p>
+                <TelescopeInput on:change={handleTelescopeChange} />
+              </div>
+            </section>
+
+            <!-- Action & Result Section -->
+            <section class="pt-4 space-y-6">
+              <div>
+                <Button
+                  on:click={generatePlan}
+                  disabled={loading}
+                  class="w-full h-14 text-lg tracking-wide border border-green-400 text-green-400  hover:bg-green-400/50 uppercase"
+                  variant="ghost"
+                >
+                  {#if loading}
+                    <span class="animate-pulse">generating...</span>
+                  {:else}
+                    generate plan
+                  {/if}
+                </Button>
+
+                {#if error}
+                  <div
+                    class="mt-4 p-4 text-destructive text-sm bg-destructive/10 border border-destructive/20 text-center"
+                  >
+                    error: {error}
+                  </div>
+                {/if}
+              </div>
+
+              {#if generatedPdfUrl}
+                <div
+                  class="animate-in fade-in slide-in-from-bottom-4 duration-500 pt-4 border-t border-border"
+                >
+                  <Card
+                    class="border border-white/10 bg-neutral-900/60 shadow-lg"
+                  >
+                    <CardHeader>
+                      <div class="flex items-center justify-between">
+                        <div>
+                          <CardTitle class="text-xl lowercase"
+                            >plan ready</CardTitle
+                          >
+                          <CardDescription class="lowercase"
+                            >session prepared</CardDescription
+                          >
+                        </div>
+                        <a
+                          href={generatedPdfUrl}
+                          download="observation_plan.pdf"
+                          class="inline-flex items-center justify-center text-sm font-medium transition-colors hover:text-accent underline underline-offset-4 lowercase"
+                        >
+                          download pdf
+                        </a>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div
+                        class="aspect-[1/1.4] w-full border border-border bg-black/50 backdrop-blur-sm"
+                      >
+                        <iframe
+                          src={generatedPdfUrl}
+                          class="w-full h-full"
+                          title="PDF Preview"
+                        ></iframe>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              {/if}
+            </section>
+          </CardContent>
+        </Card>
+      </Tabs.Content>
+
+      <Tabs.Content value="catalog" class="mt-6">
+        <Card class="border border-white/10 bg-neutral-900/60 shadow-lg">
+          <CardHeader>
+            <CardTitle class="text-xl lowercase">
+              gestión del catálogo astronómico
+            </CardTitle>
+            <CardDescription class="lowercase">
+              administra y explora tu catálogo de objetos astronómicos. esta
+              sección está en construcción.
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-6">
+            <p class="text-sm text-muted-foreground lowercase">
+              pronto podrás cargar, editar y organizar tu catálogo personalizado
+              de objetos de cielo profundo, planetas y más.
+            </p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div
+                class="rounded-md border border-dashed border-border/60 p-4 text-xs text-muted-foreground lowercase"
+              >
+                sección para listado y búsqueda de objetos (por ejemplo,
+                catálogo messier, ngc, etc.).
+              </div>
+              <div
+                class="rounded-md border border-dashed border-border/60 p-4 text-xs text-muted-foreground lowercase"
+              >
+                sección para futuros formularios de alta/edición y acciones de
+                sincronización con el backend.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Tabs.Content>
+    </Tabs.Root>
+  </main>
+</div>

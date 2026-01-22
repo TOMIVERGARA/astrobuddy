@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/app:/app/app
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+
+  frontend:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    environment:
+      # SvelteKit needs to know about the container network if doing SSR calls, 
+      # but here we do client-side fetch.
+      # We just need to ensure the container installs deps and runs via host binding.
+      - HOST=0.0.0.0
+    command: sh -c "npm install && npm run dev -- --host"
+    depends_on:
+      - backend

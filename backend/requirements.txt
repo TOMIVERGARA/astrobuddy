@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+skyfield
+pandas
+requests
+python-dotenv
+openmeteo-requests
+requests-cache
+retry-requests
+weasyprint
+jinja2
+openai
+pydantic
+astroquery
+timezonefinder
+pytz
