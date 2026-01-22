@@ -114,7 +114,7 @@
                 site. this is used for altitude, visibility windows and also for
                 the local weather forecast that feeds the observing plan.
               </p>
-              <div class="h-96 w-full overflow-hidden">
+              <div class="h-[30rem] w-full overflow-hidden">
                 <MapPicker bind:lat bind:lon />
               </div>
             </section>

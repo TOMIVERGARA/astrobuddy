@@ -34,7 +34,7 @@
       isSearching = true;
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`,
         );
         if (response.ok) {
           searchResults = await response.json();
@@ -112,7 +112,7 @@
           {
             subdomains: "abcd",
             maxZoom: 19,
-          }
+          },
         )
         .addTo(map);
 
@@ -145,123 +145,120 @@
   }
 </script>
 
-<div class="w-full h-full relative group">
-  <!-- Map Container -->
-  <div bind:this={mapElement} class="w-full h-full bg-black"></div>
-
-  <!-- Controls Overlay -->
+<div class="w-full h-full flex flex-col">
+  <!-- Search Box Panel -->
   <div
-    class="absolute top-4 left-4 right-4 z-[400] flex flex-col gap-2 pointer-events-none"
+    class="bg-black/80 backdrop-blur-md border border-white/10 p-1 shadow-2xl transition-all duration-300"
   >
-    <!-- Search Box Panel -->
-    <div
-      class="bg-black/80 backdrop-blur-md border border-white/10 p-1 pointer-events-auto shadow-2xl transition-all duration-300"
-    >
-      <!-- Tabs -->
-      <div class="grid grid-cols-2 mb-1">
-        <button
-          class="py-2 text-xs font-bold uppercase tracking-wider transition-colors {searchMode ===
-          'location'
-            ? 'bg-white text-black'
-            : 'text-zinc-500 hover:text-white'}"
-          on:click={() => (searchMode = "location")}
-        >
-          Place
-        </button>
-        <button
-          class="py-2 text-xs font-bold uppercase tracking-wider transition-colors {searchMode ===
-          'coords'
-            ? 'bg-white text-black'
-            : 'text-zinc-500 hover:text-white'}"
-          on:click={() => (searchMode = "coords")}
-        >
-          Coords
-        </button>
-      </div>
+    <!-- Tabs -->
+    <div class="grid grid-cols-2 mb-1">
+      <button
+        class="py-2 text-xs font-bold uppercase tracking-wider transition-colors {searchMode ===
+        'location'
+          ? 'bg-white text-black'
+          : 'text-zinc-500 hover:text-white'}"
+        on:click={() => (searchMode = "location")}
+      >
+        Place
+      </button>
+      <button
+        class="py-2 text-xs font-bold uppercase tracking-wider transition-colors {searchMode ===
+        'coords'
+          ? 'bg-white text-black'
+          : 'text-zinc-500 hover:text-white'}"
+        on:click={() => (searchMode = "coords")}
+      >
+        Coords
+      </button>
+    </div>
 
-      <!-- Content -->
-      <div class="relative">
-        {#if searchMode === "location"}
+    <!-- Content -->
+    <div class="relative">
+      {#if searchMode === "location"}
+        <input
+          type="text"
+          bind:value={searchQuery}
+          on:input={handleSearchInput}
+          placeholder="Search city, country..."
+          class="w-full bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
+        />
+
+        {#if searchResults.length > 0}
+          <ul
+            class="absolute top-full left-0 right-0 max-h-48 overflow-y-auto bg-black border border-t-0 border-white/10 shadow-xl z-10"
+          >
+            {#each searchResults as result}
+              <li>
+                <button
+                  class="w-full text-left p-3 text-xs text-zinc-300 hover:bg-white/10 hover:text-white transition-colors border-b border-white/5 last:border-0"
+                  on:click={() => selectLocation(result)}
+                >
+                  {result.display_name}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      {:else}
+        <div class="flex gap-1">
           <input
             type="text"
-            bind:value={searchQuery}
-            on:input={handleSearchInput}
-            placeholder="Search city, country..."
-            class="w-full bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
+            bind:value={inputLat}
+            placeholder="Lat"
+            class="w-1/2 bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
           />
+          <input
+            type="text"
+            bind:value={inputLon}
+            placeholder="Lon"
+            class="w-1/2 bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
+          />
+          <button
+            on:click={handleCoordsSubmit}
+            class="bg-white text-black px-3 font-bold text-xs uppercase"
+          >
+            Go
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
 
-          {#if searchResults.length > 0}
-            <ul
-              class="absolute top-full left-0 right-0 max-h-48 overflow-y-auto bg-black border border-t-0 border-white/10 shadow-xl"
-            >
-              {#each searchResults as result}
-                <li>
-                  <button
-                    class="w-full text-left p-3 text-xs text-zinc-300 hover:bg-white/10 hover:text-white transition-colors border-b border-white/5 last:border-0"
-                    on:click={() => selectLocation(result)}
-                  >
-                    {result.display_name}
-                  </button>
-                </li>
-              {/each}
-            </ul>
-          {/if}
-        {:else}
-          <div class="flex gap-1">
-            <input
-              type="text"
-              bind:value={inputLat}
-              placeholder="Lat"
-              class="w-1/2 bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
-            />
-            <input
-              type="text"
-              bind:value={inputLon}
-              placeholder="Lon"
-              class="w-1/2 bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
-            />
-            <button
-              on:click={handleCoordsSubmit}
-              class="bg-white text-black px-3 font-bold text-xs uppercase"
-            >
-              Go
-            </button>
-          </div>
-        {/if}
+  <!-- Map Container -->
+  <div class="flex-1 relative group">
+    <div bind:this={mapElement} class="w-full h-full bg-black"></div>
+
+    <!-- Custom Zoom Controls -->
+    <div class="absolute bottom-4 right-4 z-[400] pointer-events-none">
+      <div
+        class="flex flex-col rounded-md overflow-hidden shadow-lg border border-white/10 bg-black/70 backdrop-blur-sm pointer-events-auto"
+      >
+        <button
+          type="button"
+          class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+          on:click={zoomIn}
+        >
+          +
+        </button>
+        <div class="h-px bg-white/10"></div>
+        <button
+          type="button"
+          class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+          on:click={zoomOut}
+        >
+          −
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Custom Zoom Controls -->
-  <div class="absolute bottom-4 right-4 z-[400] pointer-events-none">
-    <div
-      class="flex flex-col rounded-md overflow-hidden shadow-lg border border-white/10 bg-black/70 backdrop-blur-sm pointer-events-auto"
-    >
-      <button
-        type="button"
-        class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
-        on:click={zoomIn}
-      >
-        +
-      </button>
-      <div class="h-px bg-white/10"></div>
-      <button
-        type="button"
-        class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
-        on:click={zoomOut}
-      >
-        −
-      </button>
-    </div>
+    <!-- Styles for Leaflet inside -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
   </div>
-
-  <!-- Styles for Leaflet inside -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
 </div>
 
 <style>
