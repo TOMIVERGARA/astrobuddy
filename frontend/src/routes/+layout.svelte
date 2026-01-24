@@ -2,6 +2,7 @@
   import "../app.css";
   import { onMount } from "svelte";
   import Starback from "starback";
+  import Sonner from "$lib/components/ui/sonner/sonner.svelte";
 
   let canvas: HTMLCanvasElement;
 
@@ -23,3 +24,7 @@
   class="fixed inset-0 w-full h-full z-0 pointer-events-none"
 ></canvas>
 <slot />
+<Sonner
+  position="bottom-right"
+  style="background: rgba(0, 0, 0, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); color: #fff; border-radius: 0px;"
+/>

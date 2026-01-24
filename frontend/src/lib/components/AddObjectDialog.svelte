@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher, tick } from "svelte";
   import { slide, fly } from "svelte/transition";
+  import { toast } from "svelte-sonner";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -211,11 +212,23 @@
       const newObject = await response.json();
       dispatch("objectCreated", newObject);
 
+      // Show success notification
+      toast.success(`${objectData.name} added successfully`, {
+        description: `${objectData.type} • ${objectData.constellation || "unknown constellation"}`,
+        duration: 4000,
+      });
+
       // Reset form
       resetForm();
       open = false;
     } catch (e: any) {
       error = e.message;
+
+      // Show error notification
+      toast.error("failed to add object", {
+        description: e.message,
+        duration: 5000,
+      });
     } finally {
       loading = false;
     }
@@ -256,7 +269,7 @@
 
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
   <Dialog.Content
-    class="max-w-4xl max-h-[90vh] overflow-y-auto transition-all duration-500 ease-in-out"
+    class="max-w-4xl max-h-[90vh] transition-all duration-500 ease-in-out flex flex-col"
   >
     <Dialog.Header>
       <Dialog.Title>add new object</Dialog.Title>
@@ -266,7 +279,7 @@
       </Dialog.Description>
     </Dialog.Header>
 
-    <div class="space-y-6 py-4">
+    <div class="space-y-6 py-4 overflow-y-auto flex-1">
       <!-- Search Bar - Full Width -->
       <div class="flex gap-2">
         <Input
