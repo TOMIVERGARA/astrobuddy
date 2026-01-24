@@ -253,3 +253,190 @@ def delete_object(object_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/catalog/lookup/{object_id}")
+def lookup_object(object_id: str):
+    """Lookup object data from SIMBAD and VizieR using astroquery, with constellation calculation"""
+    try:
+        from astroquery.simbad import Simbad
+        from astroquery.vizier import Vizier
+        from astropy.coordinates import SkyCoord
+        import astropy.units as u
+        
+        print(f"[LOOKUP] Searching for object: {object_id}")
+        
+        # Configure Simbad to get comprehensive data
+        # Note: SIMBAD returns RA/DEC in degrees by default (RA_d, DEC_d columns)
+        custom_simbad = Simbad()
+        custom_simbad.add_votable_fields('otype', 'flux(V)', 'flux(B)', 'dimensions')
+        
+        # Query SIMBAD
+        print("[LOOKUP] Querying SIMBAD...")
+        result = custom_simbad.query_object(object_id)
+        
+        if result is None or len(result) == 0:
+            raise HTTPException(status_code=404, detail=f"Object '{object_id}' not found in SIMBAD")
+        
+        row = result[0]
+        
+        print(f"[LOOKUP] Available columns: {row.colnames}")
+        
+        # Extract coordinates - SIMBAD returns them as 'ra' and 'dec' (lowercase)
+        ra = float(row['ra']) if 'ra' in row.colnames and row['ra'] is not None else None
+        dec = float(row['dec']) if 'dec' in row.colnames and row['dec'] is not None else None
+        
+        print(f"[LOOKUP] Extracted RA={ra}, DEC={dec}")
+        
+        # Calculate constellation from RA/DEC using astropy
+        constellation = None
+        if ra is not None and dec is not None:
+            try:
+                coord = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+                constellation = coord.get_constellation(short_name=True)
+                print(f"[LOOKUP] Calculated constellation: {constellation}")
+            except Exception as e:
+                print(f"[LOOKUP] Could not calculate constellation: {e}")
+        
+        # Extract object type - convert SIMBAD codes to readable names
+        obj_type = str(row['otype']) if 'otype' in row.colnames and row['otype'] else None
+        if obj_type:
+            # Common SIMBAD type mappings
+            type_mappings = {
+                'G': 'Galaxy',
+                'GiG': 'Galaxy in Group',
+                'GiC': 'Galaxy in Cluster',
+                'PN': 'Planetary Nebula',
+                'HII': 'HII Region',
+                'EmO': 'Emission Object',
+                'Neb': 'Nebula',
+                'OpC': 'Open Cluster',
+                'GlC': 'Globular Cluster',
+                'ClG': 'Cluster of Galaxies',
+                'SNR': 'Supernova Remnant',
+                'RfN': 'Reflection Nebula',
+                'DkN': 'Dark Nebula',
+            }
+            obj_type = type_mappings.get(obj_type, obj_type)
+        
+        # Get magnitude from SIMBAD - columns are 'V' and 'B' (lowercase)
+        mag = None
+        if 'V' in row.colnames and row['V'] is not None:
+            mag = float(row['V'])
+        elif 'B' in row.colnames and row['B'] is not None:
+            mag = float(row['B'])
+        
+        # Get size from SIMBAD - column is 'galdim_majaxis' (lowercase)
+        size = None
+        if 'galdim_majaxis' in row.colnames and row['galdim_majaxis'] is not None:
+            size = str(row['galdim_majaxis'])
+        
+        # Try to get additional data from VizieR if magnitude or size is missing
+        if mag is None or size is None:
+            try:
+                print("[LOOKUP] Trying VizieR for additional data...")
+                coord = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='icrs')
+                
+                # Query Messier catalog in VizieR
+                v = Vizier(columns=['*'], row_limit=1)
+                v.ROW_LIMIT = 1
+                
+                # Try Messier catalog (VII/118)
+                messier_result = v.query_region(coord, radius=1*u.arcmin, catalog='VII/118')
+                if messier_result and len(messier_result) > 0:
+                    table = messier_result[0]
+                    if len(table) > 0:
+                        if mag is None and 'Vmag' in table.colnames:
+                            mag = float(table['Vmag'][0]) if table['Vmag'][0] else None
+                        if size is None and 'Diam' in table.colnames:
+                            size = str(table['Diam'][0]) if table['Diam'][0] else None
+                        print(f"[LOOKUP] Found data in Messier catalog")
+                
+                # If still missing, try NGC/IC catalog (VII/1B)
+                if mag is None or size is None:
+                    ngc_result = v.query_region(coord, radius=1*u.arcmin, catalog='VII/1B')
+                    if ngc_result and len(ngc_result) > 0:
+                        table = ngc_result[0]
+                        if len(table) > 0:
+                            if mag is None and 'Vmag' in table.colnames:
+                                mag = float(table['Vmag'][0]) if table['Vmag'][0] else None
+                            if size is None and 'MajDiam' in table.colnames:
+                                size = str(table['MajDiam'][0]) if table['MajDiam'][0] else None
+                            print(f"[LOOKUP] Found data in NGC/IC catalog")
+            except Exception as e:
+                print(f"[LOOKUP] VizieR query failed: {e}")
+        
+        # Build response
+        data = {
+            "id": object_id.upper(),
+            "name": str(row['main_id']) if 'main_id' in row.colnames else object_id,
+            "ra": ra,
+            "dec": dec,
+            "type": obj_type,
+            "constellation": constellation,
+            "mag": mag,
+            "size": size,
+        }
+        
+        print(f"[LOOKUP] Returning data: {data}")
+        return data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error querying astronomical databases: {str(e)}")
+
+@app.get("/catalog/images/{object_id}")
+def get_object_images(object_id: str):
+    """Search NASA Image Library for object images"""
+    try:
+        import requests
+        
+        print(f"[IMAGES] Searching NASA API for: {object_id}")
+        
+        # Query NASA Images API
+        url = f"https://images-api.nasa.gov/search?q={object_id}&media_type=image"
+        response = requests.get(url, timeout=10)
+        
+        if not response.ok:
+            raise HTTPException(status_code=response.status_code, detail="NASA API request failed")
+        
+        data = response.json()
+        
+        # Extract image URLs
+        images = []
+        items = data.get('collection', {}).get('items', [])
+        
+        for item in items[:10]:  # Limit to first 10 results
+            links = item.get('links', [])
+            item_data = item.get('data', [{}])[0]
+            
+            # Find the best quality image (prefer ~medium or ~large)
+            image_url = None
+            for link in links:
+                if link.get('render') == 'image':
+                    href = link.get('href', '')
+                    # Prefer medium or large, but take any image
+                    if '~medium' in href or '~large' in href:
+                        image_url = href
+                        break
+                    elif not image_url:
+                        image_url = href
+            
+            if image_url:
+                images.append({
+                    "url": image_url,
+                    "title": item_data.get('title', ''),
+                    "description": item_data.get('description', '')[:200] + '...' if item_data.get('description') else ''
+                })
+        
+        print(f"[IMAGES] Found {len(images)} images")
+        return {"images": images}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error searching NASA images: {str(e)}")

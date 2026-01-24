@@ -89,13 +89,13 @@
           value="session"
           class="rounded-none px-4 py-2 text-sm font-medium lowercase data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground data-[state=active]:bg-neutral-900/70"
         >
-          generador de sesión
+          session generator
         </Tabs.Trigger>
         <Tabs.Trigger
           value="catalog"
           class="rounded-none px-4 py-2 text-sm font-medium lowercase data-[state=active]:border-b-2 data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground data-[state=active]:bg-neutral-900/60"
         >
-          gestión del catálogo astronómico
+          astronomical catalog management
         </Tabs.Trigger>
       </Tabs.List>
 

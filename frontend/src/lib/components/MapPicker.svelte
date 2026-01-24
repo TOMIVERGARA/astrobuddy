@@ -179,7 +179,7 @@
           type="text"
           bind:value={searchQuery}
           on:input={handleSearchInput}
-          placeholder="Search city, country..."
+          placeholder="search city, country..."
           class="w-full bg-white/5 border border-white/10 text-white text-sm p-2 focus:outline-none focus:border-white/30"
         />
 
@@ -217,7 +217,7 @@
             on:click={handleCoordsSubmit}
             class="bg-white text-black px-3 font-bold text-xs uppercase"
           >
-            Go
+            go
           </button>
         </div>
       {/if}

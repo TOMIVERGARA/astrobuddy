@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Input } from "$lib/components/ui/input";
+  import { Button } from "$lib/components/ui/button";
   import { Card, CardContent } from "$lib/components/ui/card";
+  import AddObjectDialog from "./AddObjectDialog.svelte";
 
   interface CelestialObject {
     id: string;
@@ -24,6 +26,7 @@
   let searchQuery = "";
   let loading = false;
   let error: string | null = null;
+  let showAddDialog = false;
 
   const DEFAULT_IMAGE = "/default-celestial.svg";
 
@@ -86,32 +89,43 @@
       handleSearch();
     }, 300);
   }
+
+  function handleObjectCreated() {
+    // Reload the catalog after creating a new object
+    loadObjects();
+  }
 </script>
 
 <div class="space-y-6">
-  <div class="space-y-2">
-    <h2 class="text-2xl font-bold tracking-tight lowercase">
-      catálogo astronómico
-    </h2>
-    <p class="text-muted-foreground lowercase">
-      explora y gestiona tu colección de objetos celestes
-    </p>
+  <div class="flex items-start justify-between gap-4">
+    <div class="space-y-2">
+      <h2 class="text-2xl font-bold tracking-tight">astronomical catalog</h2>
+      <p class="text-muted-foreground">
+        explore and manage your collection of celestial objects
+      </p>
+    </div>
+    <Button
+      on:click={() => (showAddDialog = true)}
+      class="border-green-500 hover:bg-green-500 text-white shrink-0"
+    >
+      + add object
+    </Button>
   </div>
 
   <!-- Search Bar -->
   <div class="w-full max-w-2xl">
     <Input
       type="text"
-      placeholder="buscar por nombre, id, tipo, constelación o catálogo..."
+      placeholder="search by name, id, type, constellation or catalog..."
       bind:value={searchQuery}
-      class="h-12 text-base lowercase bg-neutral-900/60 border-white/10"
+      class="h-12 text-base bg-neutral-900/60 border-white/10"
     />
   </div>
 
   <!-- Loading State -->
   {#if loading && filteredObjects.length === 0}
     <div class="text-center py-12">
-      <p class="text-muted-foreground animate-pulse lowercase">cargando...</p>
+      <p class="text-muted-foreground animate-pulse">loading...</p>
     </div>
   {/if}
 
@@ -128,7 +142,7 @@
   {#if !loading || filteredObjects.length > 0}
     {#if filteredObjects.length === 0}
       <div class="text-center py-12">
-        <p class="text-muted-foreground lowercase">no se encontraron objetos</p>
+        <p class="text-muted-foreground">no objects found</p>
       </div>
     {:else}
       <div
@@ -165,10 +179,10 @@
                 >
                   {object.id}
                 </p>
-                <p class="text-sm font-medium truncate lowercase">
+                <p class="text-sm font-medium truncate">
                   {object.name}
                 </p>
-                <p class="text-xs text-muted-foreground truncate lowercase">
+                <p class="text-xs text-muted-foreground truncate">
                   {object.type}
                   {#if object.constellation}
                     · {object.constellation}
@@ -182,3 +196,9 @@
     {/if}
   {/if}
 </div>
+
+<!-- Add Object Dialog -->
+<AddObjectDialog
+  bind:open={showAddDialog}
+  on:objectCreated={handleObjectCreated}
+/>
