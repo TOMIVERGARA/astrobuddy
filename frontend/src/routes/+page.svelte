@@ -13,6 +13,7 @@
     CardTitle,
   } from "$lib/components/ui/card";
   import * as Tabs from "$lib/components/ui/tabs";
+  import { MultiStepLoader } from "$lib/components/ui/multi-step-loader";
 
   let lat = -34.6037;
   let lon = -58.3816;
@@ -30,35 +31,90 @@
   let loading = false;
   let error: string | null = null;
   let generatedPdfUrl: string | null = null;
+  let currentStep = 0;
+
+  const loadingStates = [
+    { text: "initializing observation session..." },
+    { text: "calculating astronomical darkness window..." },
+    { text: "fetching hourly weather forecast..." },
+    { text: "calculating visible planets..." },
+    { text: "fetching astronomical catalog..." },
+    { text: "filtering visible objects..." },
+    { text: "calculating object schedules..." },
+    { text: "AI analyzing observation conditions..." },
+    { text: "enriching ephemerides with AI insights..." },
+    { text: "generating visibility charts..." },
+    { text: "creating PDF report..." },
+    { text: "finalizing document..." },
+  ];
 
   async function generatePlan() {
     loading = true;
     error = null;
     generatedPdfUrl = null;
+    currentStep = 0;
 
     try {
-      const response = await fetch("http://localhost:8000/generate-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lat,
-          lon,
-          date: new Date(date).toISOString(),
-          telescope,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:8000/generate-plan-stream",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat,
+            lon,
+            date: new Date(date).toISOString(),
+            telescope,
+          }),
+        },
+      );
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "failed to generate plan");
+        throw new Error("Failed to start plan generation");
       }
 
-      const blob = await response.blob();
-      generatedPdfUrl = URL.createObjectURL(blob);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error("No response body");
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            if (data.step !== undefined) {
+              currentStep = data.step;
+            }
+
+            if (data.message === "complete" && data.filepath) {
+              // Download the PDF
+              const pdfResponse = await fetch(
+                `http://localhost:8000/download-pdf/${data.filepath.split("/").pop()}`,
+              );
+              const blob = await pdfResponse.blob();
+              generatedPdfUrl = URL.createObjectURL(blob);
+            }
+          }
+        }
+      }
     } catch (e: any) {
       error = e.message;
     } finally {
       loading = false;
+      currentStep = 0;
     }
   }
 </script>
@@ -224,3 +280,6 @@
     </Tabs.Root>
   </main>
 </div>
+
+<!-- Multi-step loader for PDF generation -->
+<MultiStepLoader {loadingStates} {loading} {currentStep} />

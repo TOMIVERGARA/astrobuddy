@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 import os
 import uuid
 import json
+import asyncio
 
 # Services
 from app.services.astronomy import AstronomyService
@@ -39,6 +40,139 @@ catalog_svc = CatalogService()
 weather_svc = WeatherService()
 ai_svc = AIService()
 charts_svc = ChartsService()
+
+async def generate_plan_with_progress(req: PlanRequest):
+    """Generator that yields SSE events during plan generation"""
+    try:
+        yield f"data: {json.dumps({'step': 0, 'message': 'initializing observation session...'})}\n\n"
+        await asyncio.sleep(0.1)
+        
+        print("\n=== STARTING NEW PLAN GENERATION ===")
+        print(f"Request: Lat={req.lat}, Lon={req.lon}, Date={req.date}, Scope={req.telescope}")
+
+        # 1. Astronomy Calc
+        yield f"data: {json.dumps({'step': 1, 'message': 'calculating astronomical darkness window...'})}\n\n"
+        print("1. [ASTRO] Calculating night info...")
+        night_info = astronomy_svc.calculate_night_info(req.lat, req.lon, req.date)
+        
+        darkness = night_info.get("darkness_window", {})
+        start_str = darkness.get("start")
+        end_str = darkness.get("end")
+        tz_str = night_info.get("timezone", "UTC")
+        print(f"   [ASTRO] Timezone detected: {tz_str}")
+        
+        if start_str and end_str:
+            obs_start = datetime.fromisoformat(start_str)
+            obs_end = datetime.fromisoformat(end_str)
+            print(f"   [ASTRO] Darkness Window: {start_str} to {end_str}")
+        else:
+            print("   [ASTRO] No astronomical darkness found. Using generic night window.")
+            obs_start = req.date.replace(hour=22, minute=0, second=0)
+            obs_end = req.date.replace(hour=4, minute=0, second=0)
+
+        # 2. Weather
+        yield f"data: {json.dumps({'step': 2, 'message': 'fetching hourly weather forecast...'})}\n\n"
+        print("2. [WEATHER] Fetching precise hourly forecast...")
+        weather_info = weather_svc.get_weather_forecast(req.lat, req.lon, obs_start, obs_end)
+        
+        # 3. Planets
+        yield f"data: {json.dumps({'step': 3, 'message': 'calculating visible planets...'})}\n\n"
+        print("3. [ASTRO] Calculating visible planets...")
+        planets = astronomy_svc.get_visible_planets(req.lat, req.lon, req.date, darkness)
+        print(f"   [ASTRO] Calculated {len(planets)} visible planets.")
+
+        # 4. Catalog
+        yield f"data: {json.dumps({'step': 4, 'message': 'fetching astronomical catalog...'})}\n\n"
+        print("4. [CATALOG] Fetching and filtering objects...")
+        all_objects = catalog_svc.get_all_objects()
+        
+        yield f"data: {json.dumps({'step': 5, 'message': 'filtering visible objects...'})}\n\n"
+        visible_objects = astronomy_svc.filter_visible_objects(req.lat, req.lon, req.date, all_objects)
+        print(f"   [CATALOG] {len(visible_objects)} objects visible.")
+        
+        # 5. Enrich
+        yield f"data: {json.dumps({'step': 6, 'message': 'calculating object schedules...'})}\n\n"
+        print("5. [ASTRO] Calculating schedules for visible objects...")
+        enriched_objects = []
+        for obj in visible_objects:
+            obj_dict = obj.dict()
+            events = astronomy_svc.calculate_object_events(req.lat, req.lon, req.date, obj.ra / 15.0, obj.dec)
+            obj_dict.update(events)
+            enriched_objects.append(obj_dict)
+
+        # 6. AI
+        yield f"data: {json.dumps({'step': 7, 'message': 'analyzing observation conditions with AI...'})}\n\n"
+        print("6. [AI] Generative curation starting...")
+        ai_plan = ai_svc.generate_observation_plan(
+            enriched_objects, 
+            weather_info['summary'], 
+            {"lat": req.lat, "lon": req.lon}, 
+            {"type": req.telescope}
+        )
+        print("   [AI] Plan generated.")
+        
+        yield f"data: {json.dumps({'step': 8, 'message': 'enriching ephemerides with AI insights...'})}\n\n"
+        
+        # Merge
+        final_objects = []
+        tech_map = {obj['id']: obj for obj in enriched_objects}
+        
+        for ai_obj in ai_plan.get('objects', []):
+            o_id = ai_obj.get('id')
+            if o_id in tech_map:
+                merged = tech_map[o_id].copy()
+                merged.update(ai_obj) 
+                final_objects.append(merged)
+            else:
+                final_objects.append(ai_obj)
+        ai_plan['objects'] = final_objects
+        
+        # 7. Charts
+        yield f"data: {json.dumps({'step': 9, 'message': 'generating visibility charts...'})}\n\n"
+        
+        # 8. PDF
+        yield f"data: {json.dumps({'step': 10, 'message': 'creating PDF report...'})}\n\n"
+        print("7. [PDF] Rendering document...")
+        data = {
+            "location": {"lat": req.lat, "lon": req.lon},
+            "date": req.date.strftime("%Y-%m-%d"),
+            "timezone": tz_str,
+            "astro": night_info, 
+            "planets": planets,
+            "weather": weather_info, 
+            "ai": ai_plan,
+            "charts": charts_svc,
+            "telescope": req.telescope
+        }
+        
+        filename = f"plan_{uuid.uuid4()}.pdf"
+        filepath = os.path.join("backend/data", filename)
+        generate_pdf(data, filepath)
+        print(f"   [PDF] Saved to {filepath}")
+        
+        yield f"data: {json.dumps({'step': 11, 'message': 'finalizing document...'})}\n\n"
+        await asyncio.sleep(0.2)
+        
+        print("=== GENERATION COMPLETE ===\n")
+        yield f"data: {json.dumps({'step': 12, 'message': 'complete', 'filepath': filepath})}\n\n"
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+@app.post("/generate-plan-stream")
+async def create_plan_stream(req: PlanRequest):
+    """Generate plan with SSE progress updates"""
+    return StreamingResponse(
+        generate_plan_with_progress(req),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 @app.post("/generate-plan")
 async def create_plan(req: PlanRequest):
@@ -149,6 +283,14 @@ async def create_plan(req: PlanRequest):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+@app.get("/download-pdf/{filename}")
+async def download_pdf(filename: str):
+    """Download a generated PDF file"""
+    filepath = os.path.join("backend/data", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="PDF not found")
+    return FileResponse(filepath, media_type='application/pdf', filename="observation_plan.pdf")
 
 # ===== CATALOG CRUD ENDPOINTS =====
 
