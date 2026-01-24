@@ -115,7 +115,10 @@ def seed():
             size TEXT,
             type TEXT,
             constellation TEXT,
-            description TEXT
+            description TEXT,
+            catalog TEXT,
+            image_url TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
@@ -169,9 +172,9 @@ def seed():
 
         try:
             cursor.execute('''
-                INSERT INTO objects (id, name, ngc, ra, dec, mag, size, type, constellation, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (m_id, name, ngc, ra, dec, mag, size, obj_type, constellation, desc))
+                INSERT INTO objects (id, name, ngc, ra, dec, mag, size, type, constellation, description, catalog)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (m_id, name, ngc, ra, dec, mag, size, obj_type, constellation, desc, 'Messier'))
             inserted_count += 1
         except Exception as e:
             print(f"Error inserting {m_id}: {e}")

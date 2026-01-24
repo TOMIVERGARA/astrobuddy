@@ -2,6 +2,7 @@
   import MapPicker from "$lib/components/MapPicker.svelte";
   import TelescopeInput from "$lib/components/TelescopeInput.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
+  import CatalogView from "$lib/components/CatalogView.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import {
@@ -215,34 +216,8 @@
 
       <Tabs.Content value="catalog" class="mt-6">
         <Card class="border border-white/10 bg-neutral-900/60 shadow-lg">
-          <CardHeader>
-            <CardTitle class="text-xl lowercase">
-              gestión del catálogo astronómico
-            </CardTitle>
-            <CardDescription class="lowercase">
-              administra y explora tu catálogo de objetos astronómicos. esta
-              sección está en construcción.
-            </CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-6">
-            <p class="text-sm text-muted-foreground lowercase">
-              pronto podrás cargar, editar y organizar tu catálogo personalizado
-              de objetos de cielo profundo, planetas y más.
-            </p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div
-                class="rounded-md border border-dashed border-border/60 p-4 text-xs text-muted-foreground lowercase"
-              >
-                sección para listado y búsqueda de objetos (por ejemplo,
-                catálogo messier, ngc, etc.).
-              </div>
-              <div
-                class="rounded-md border border-dashed border-border/60 p-4 text-xs text-muted-foreground lowercase"
-              >
-                sección para futuros formularios de alta/edición y acciones de
-                sincronización con el backend.
-              </div>
-            </div>
+          <CardContent class="p-6">
+            <CatalogView />
           </CardContent>
         </Card>
       </Tabs.Content>

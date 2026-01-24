@@ -149,3 +149,107 @@ async def create_plan(req: PlanRequest):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+# ===== CATALOG CRUD ENDPOINTS =====
+
+class CelestialObjectCreate(BaseModel):
+    id: str
+    name: str
+    ngc: Optional[str] = None
+    ra: float
+    dec: float
+    mag: float
+    size: Optional[str] = None
+    type: str
+    constellation: Optional[str] = None
+    description: Optional[str] = None
+    catalog: Optional[str] = None
+    image_url: Optional[str] = None
+
+class CelestialObjectUpdate(BaseModel):
+    name: Optional[str] = None
+    ngc: Optional[str] = None
+    ra: Optional[float] = None
+    dec: Optional[float] = None
+    mag: Optional[float] = None
+    size: Optional[str] = None
+    type: Optional[str] = None
+    constellation: Optional[str] = None
+    description: Optional[str] = None
+    catalog: Optional[str] = None
+    image_url: Optional[str] = None
+
+@app.get("/catalog/objects")
+def list_objects(search: Optional[str] = None):
+    """List all objects or search by query"""
+    try:
+        if search:
+            objects = catalog_svc.search_objects(search)
+        else:
+            objects = catalog_svc.get_all_objects()
+        return {"objects": [obj.dict() for obj in objects]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/catalog/objects/{object_id}")
+def get_object(object_id: str):
+    """Get a specific object by ID"""
+    try:
+        obj = catalog_svc.get_object_by_id(object_id)
+        if not obj:
+            raise HTTPException(status_code=404, detail="Object not found")
+        return obj.dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/catalog/objects")
+def create_object(obj: CelestialObjectCreate):
+    """Create a new celestial object"""
+    try:
+        # Check if object already exists
+        existing = catalog_svc.get_object_by_id(obj.id)
+        if existing:
+            raise HTTPException(status_code=400, detail="Object with this ID already exists")
+        
+        new_obj = catalog_svc.create_object(obj.dict())
+        return new_obj.dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/catalog/objects/{object_id}")
+def update_object(object_id: str, obj: CelestialObjectUpdate):
+    """Update an existing object"""
+    try:
+        # Only include fields that are set
+        update_data = {k: v for k, v in obj.dict().items() if v is not None}
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        updated_obj = catalog_svc.update_object(object_id, update_data)
+        if not updated_obj:
+            raise HTTPException(status_code=404, detail="Object not found")
+        
+        return updated_obj.dict()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/catalog/objects/{object_id}")
+def delete_object(object_id: str):
+    """Delete an object"""
+    try:
+        success = catalog_svc.delete_object(object_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Object not found")
+        
+        return {"message": "Object deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
