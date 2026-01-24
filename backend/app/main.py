@@ -365,16 +365,33 @@ def lookup_object(object_id: str):
             except Exception as e:
                 print(f"[LOOKUP] VizieR query failed: {e}")
         
-        # Build response
+        # Build response - ensure all values are JSON serializable
+        import math
+        
+        # Convert numpy types to native Python types and handle NaN
+        def clean_value(val):
+            """Convert numpy types and NaN to JSON-safe values"""
+            if val is None:
+                return None
+            # Check for NaN/Infinity
+            if isinstance(val, (float, int)):
+                if math.isnan(val) or math.isinf(val):
+                    return None
+                return float(val) if isinstance(val, float) else int(val)
+            # Convert numpy strings to regular strings
+            if hasattr(val, 'item'):  # numpy scalar
+                return val.item()
+            return str(val) if val else None
+        
         data = {
             "id": object_id.upper(),
-            "name": str(row['main_id']) if 'main_id' in row.colnames else object_id,
-            "ra": ra,
-            "dec": dec,
-            "type": obj_type,
-            "constellation": constellation,
-            "mag": mag,
-            "size": size,
+            "name": clean_value(row['main_id']) if 'main_id' in row.colnames else object_id,
+            "ra": clean_value(ra),
+            "dec": clean_value(dec),
+            "type": clean_value(obj_type),
+            "constellation": clean_value(constellation),
+            "mag": clean_value(mag),
+            "size": clean_value(size),
         }
         
         print(f"[LOOKUP] Returning data: {data}")
