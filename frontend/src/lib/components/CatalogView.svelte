@@ -123,7 +123,7 @@
     deletingId = objectToDelete.id;
     try {
       const response = await fetch(
-        `http://localhost:8000/catalog/objects/${encodeURIComponent(id)}`,
+        `http://localhost:8000/catalog/objects/${encodeURIComponent(deletingId)}`,
         {
           method: "DELETE",
         },
@@ -423,7 +423,9 @@
     <AlertDialog.Header>
       <AlertDialog.Title>confirm deletion</AlertDialog.Title>
       <AlertDialog.Description>
-        are you sure you want to delete <span class="font-semibold">{objectToDelete?.name}</span>? this action cannot be undone.
+        are you sure you want to delete <span class="font-semibold"
+          >{objectToDelete?.name}</span
+        >? this action cannot be undone.
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer>
