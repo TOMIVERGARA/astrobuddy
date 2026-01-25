@@ -10,7 +10,7 @@ class AIService:
         if self.api_key:
             self.client = OpenAI(api_key=self.api_key)
 
-    def generate_observation_plan(self, objects: List[dict], weather: dict, location: dict, telescope_specs: dict) -> dict:
+    def generate_observation_plan(self, objects: List[dict], weather: dict, location: dict, telescope_specs: dict, language: str = "english") -> dict:
         """
         Generates a narrative plan using OpenAI.
         """
@@ -18,26 +18,36 @@ class AIService:
             print("   [AI] No OPENAI_API_KEY found. Returning fallback response.")
             return self._fallback_response(objects)
 
-        print(f"   [AI] Requesting observations for {len(objects)} objects from OpenAI...")
+        print(f"   [AI] Requesting observations for {len(objects)} objects from OpenAI in {language}...")
+        
+        language_instructions = {
+            "spanish": "Write all content in Spanish. Use proper Spanish astronomical terminology and maintain a technical yet passionate tone in Spanish.",
+            "english": "Write all content in English. Use proper English astronomical terminology and maintain a technical yet passionate tone."
+        }
+        
+        lang_instruction = language_instructions.get(language.lower(), language_instructions["english"])
         
         prompt = f"""
         Act as an expert astronomer writing a technical yet passionate observation report.
-        Location: {{location}}
-        Weather: {{weather}}
-        Telescope: {{telescope_specs}}
+        
+        IMPORTANT: {lang_instruction}
+        
+        Location: {location}
+        Weather: {weather}
+        Telescope: {telescope_specs}
         
         Available Objects (Filtered):
         {json.dumps(objects, indent=2)}
         
-        Select the top 5 objects that are best for tonight's conditions and this telescope.
+        Select the top 8 objects that are best for tonight's conditions and this telescope.
         For each object, provide:
         1. "id": The exact object ID from the input list.
-        2. "ranking": 1-5.
-        3. "description": A single, rich, exhaustive paragraph combining technical details (structure, distance, composition) with visual description ("what it looks like in the eyepiece"). Be passionate but technical.
+        2. "ranking": 1-8.
+        3. "description": An interesting and curious exhaustive paragraph combining technical details (structure, distance, composition) with visual description ("what it looks like in the eyepiece"). Be passionate but technical, the idea is to generate amusement in the reader.
         4. "tips": Specific technical advice for observing this object (filters, magnification, technique).
         5. "fact": A truly obscure or scientifically interesting fact about this object.
         
-        Also provide a "Night Overview" summary that is technical and sets the mood for the session, mentioning the specific weather/moon conditions.
+        Also provide a "Night Overview" summary that is technical and sets the mood for the session, mentioning the specific weather/moon conditions, dont invent nor exaggerate any details, stick to the facts and information provided.
         
         Return JSON format:
         {{
@@ -69,7 +79,7 @@ class AIService:
         """
         Fallback if AI is unavailable.
         """
-        selected = objects[:5] if objects else []
+        selected = objects[:8] if objects else []
         return {
             "overview": "AI service unavailable. Showing raw object data.",
             "objects": [

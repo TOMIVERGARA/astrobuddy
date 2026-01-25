@@ -34,6 +34,7 @@ class PlanRequest(BaseModel):
     lon: float
     date: datetime
     telescope: str # Description like "8 inch Dobsonian"
+    language: str = "english" # Language for AI-generated content
 
 # Global Service Instances
 astronomy_svc = AstronomyService()
@@ -127,7 +128,8 @@ async def generate_plan_with_progress(req: PlanRequest):
             enriched_objects, 
             weather_info['summary'], 
             {"lat": req.lat, "lon": req.lon}, 
-            {"type": req.telescope}
+            {"type": req.telescope},
+            req.language
         )
         print("   [AI] Plan generated.")
         

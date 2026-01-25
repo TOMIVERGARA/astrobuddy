@@ -17,6 +17,10 @@
   } from "$lib/components/ui/card";
   import * as Tabs from "$lib/components/ui/tabs";
   import { MultiStepLoader } from "$lib/components/ui/multi-step-loader";
+  import {
+    ToggleGroup,
+    ToggleGroupItem,
+  } from "$lib/components/ui/toggle-group";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Clock from "lucide-svelte/icons/clock";
   import Info from "lucide-svelte/icons/info";
@@ -28,6 +32,7 @@
   let lon = -58.3816;
   let date = new Date().toISOString().split("T")[0];
   let telescope = "";
+  let language = "english";
 
   function handleTelescopeChange(event: CustomEvent<string>) {
     telescope = event.detail;
@@ -74,6 +79,7 @@
             lon,
             date: new Date(date).toISOString(),
             telescope,
+            language,
           }),
         },
       );
@@ -219,6 +225,28 @@
                       tailored to your setup.
                     </p>
                     <TelescopeInput on:change={handleTelescopeChange} />
+                  </div>
+
+                  <div class="space-y-4">
+                    <Label class="text-lg font-medium lowercase">Language</Label
+                    >
+                    <p class="text-sm text-muted-foreground lowercase max-w">
+                      select the language for AI-generated content in your
+                      observation plan. all AI descriptions, tips and insights
+                      will be written in your chosen language.
+                    </p>
+                    <ToggleGroup
+                      bind:value={language}
+                      type="single"
+                      class="w-full"
+                    >
+                      <ToggleGroupItem value="english" class="flex-1">
+                        <span class="mr-2">🇬🇧</span> English
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="spanish" class="flex-1">
+                        <span class="mr-2">🇪🇸</span> Español
+                      </ToggleGroupItem>
+                    </ToggleGroup>
                   </div>
                 </section>
 
