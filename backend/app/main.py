@@ -660,3 +660,57 @@ def get_object_images(object_id: str):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error searching NASA images: {str(e)}")
+
+@app.get("/past-sessions")
+async def get_past_sessions():
+    """Get list of all past observation session reports"""
+    try:
+        data_dir = os.path.join("backend/data")
+        if not os.path.exists(data_dir):
+            return {"sessions": []}
+        
+        sessions = []
+        
+        # Look for all report JSON files
+        for filename in os.listdir(data_dir):
+            if filename.startswith("report_") and filename.endswith(".json"):
+                report_id = filename.replace("report_", "").replace(".json", "")
+                filepath = os.path.join(data_dir, filename)
+                
+                try:
+                    with open(filepath, 'r') as f:
+                        report_data = json.load(f)
+                    
+                    # Extract metadata
+                    telescope = report_data.get("telescope", "Unknown")
+                    # Handle both string and object formats
+                    if isinstance(telescope, dict):
+                        telescope = telescope.get("type", "Unknown")
+                    
+                    # Get objects count from ai.objects if available
+                    objects_count = 0
+                    if "ai" in report_data and "objects" in report_data["ai"]:
+                        objects_count = len(report_data["ai"]["objects"])
+                    
+                    sessions.append({
+                        "id": report_id,
+                        "date": report_data.get("date"),
+                        "location": report_data.get("location", {}),
+                        "telescope": telescope or "Not specified",
+                        "objects_count": objects_count,
+                        "created_at": os.path.getctime(filepath)
+                    })
+                except Exception as e:
+                    print(f"[PAST-SESSIONS] Error reading {filename}: {e}")
+                    continue
+        
+        # Sort by creation time, newest first
+        sessions.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+        
+        print(f"[PAST-SESSIONS] Found {len(sessions)} session reports")
+        return {"sessions": sessions}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching past sessions: {str(e)}")
