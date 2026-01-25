@@ -8,6 +8,7 @@ import os
 import uuid
 import json
 import asyncio
+import numpy as np
 
 # Services
 from app.services.astronomy import AstronomyService
@@ -40,6 +41,25 @@ catalog_svc = CatalogService()
 weather_svc = WeatherService()
 ai_svc = AIService()
 charts_svc = ChartsService()
+
+def convert_to_serializable(obj):
+    """Convert numpy types and other non-serializable objects to native Python types"""
+    if isinstance(obj, (np.integer, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_serializable(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(convert_to_serializable(item) for item in obj)
+    elif hasattr(obj, '__dict__'):
+        return convert_to_serializable(obj.__dict__)
+    else:
+        return obj
 
 async def generate_plan_with_progress(req: PlanRequest):
     """Generator that yields SSE events during plan generation"""
@@ -133,6 +153,10 @@ async def generate_plan_with_progress(req: PlanRequest):
         # 8. PDF
         yield f"data: {json.dumps({'step': 10, 'message': 'creating PDF report...'})}\n\n"
         print("7. [PDF] Rendering document...")
+        
+        # Generate unique report ID
+        report_id = str(uuid.uuid4())
+        
         data = {
             "location": {"lat": req.lat, "lon": req.lon},
             "date": req.date.strftime("%Y-%m-%d"),
@@ -145,16 +169,36 @@ async def generate_plan_with_progress(req: PlanRequest):
             "telescope": req.telescope
         }
         
-        filename = f"plan_{uuid.uuid4()}.pdf"
+        filename = f"plan_{report_id}.pdf"
         filepath = os.path.join("backend/data", filename)
         generate_pdf(data, filepath)
         print(f"   [PDF] Saved to {filepath}")
+        
+        # Save report data as JSON for web display
+        report_json_path = os.path.join("backend/data", f"report_{report_id}.json")
+        with open(report_json_path, 'w') as f:
+            # Convert non-serializable objects
+            serializable_data = {
+                "report_id": report_id,
+                "pdf_filename": filename,
+                "generated_at": datetime.now().isoformat(),
+                "location": convert_to_serializable(data["location"]),
+                "date": data["date"],
+                "timezone": data["timezone"],
+                "telescope": data["telescope"],
+                "astro": convert_to_serializable(data["astro"]),
+                "planets": convert_to_serializable(data["planets"]),
+                "weather": convert_to_serializable(data["weather"]),
+                "ai": convert_to_serializable(data["ai"])
+            }
+            json.dump(serializable_data, f, indent=2)
+        print(f"   [DATA] Report data saved to {report_json_path}")
         
         yield f"data: {json.dumps({'step': 11, 'message': 'finalizing document...'})}\n\n"
         await asyncio.sleep(0.2)
         
         print("=== GENERATION COMPLETE ===\n")
-        yield f"data: {json.dumps({'step': 12, 'message': 'complete', 'filepath': filepath})}\n\n"
+        yield f"data: {json.dumps({'step': 12, 'message': 'complete', 'filepath': filepath, 'report_id': report_id})}\n\n"
         
     except Exception as e:
         import traceback
@@ -291,6 +335,23 @@ async def download_pdf(filename: str):
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="PDF not found")
     return FileResponse(filepath, media_type='application/pdf', filename="observation_plan.pdf")
+
+@app.get("/reports/{report_id}")
+async def get_report(report_id: str):
+    """Get report data by ID for web display"""
+    try:
+        report_json_path = os.path.join("backend/data", f"report_{report_id}.json")
+        if not os.path.exists(report_json_path):
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        with open(report_json_path, 'r') as f:
+            report_data = json.load(f)
+        
+        return report_data
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Report not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ===== CATALOG CRUD ENDPOINTS =====
 

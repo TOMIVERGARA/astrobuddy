@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { goto } from "$app/navigation";
   import MapPicker from "$lib/components/MapPicker.svelte";
   import TelescopeInput from "$lib/components/TelescopeInput.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
@@ -99,13 +100,9 @@
               currentStep = data.step;
             }
 
-            if (data.message === "complete" && data.filepath) {
-              // Download the PDF
-              const pdfResponse = await fetch(
-                `http://localhost:8000/download-pdf/${data.filepath.split("/").pop()}`,
-              );
-              const blob = await pdfResponse.blob();
-              generatedPdfUrl = URL.createObjectURL(blob);
+            if (data.message === "complete" && data.report_id) {
+              // Redirect to report page
+              goto(`/report/${data.report_id}`);
             }
           }
         }

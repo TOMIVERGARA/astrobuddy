@@ -34,13 +34,22 @@
       isSearching = true;
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}`,
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`,
+          {
+            headers: {
+              "User-Agent": "AstroBuddy/1.0 (astronomy app)",
+            },
+          },
         );
         if (response.ok) {
           searchResults = await response.json();
+        } else {
+          console.error("Search failed with status:", response.status);
+          searchResults = [];
         }
       } catch (error) {
         console.error("Search failed", error);
+        searchResults = [];
       } finally {
         isSearching = false;
       }
@@ -148,7 +157,7 @@
 <div class="w-full h-full flex flex-col">
   <!-- Search Box Panel -->
   <div
-    class="bg-black/80 backdrop-blur-md border border-white/10 p-1 shadow-2xl transition-all duration-300"
+    class="bg-black/80 backdrop-blur-md border border-white/10 p-1 shadow-2xl transition-all duration-300 z-[500]"
   >
     <!-- Tabs -->
     <div class="grid grid-cols-2 mb-1">
@@ -185,7 +194,7 @@
 
         {#if searchResults.length > 0}
           <ul
-            class="absolute top-full left-0 right-0 max-h-48 overflow-y-auto bg-black border border-t-0 border-white/10 shadow-xl z-10"
+            class="absolute top-full left-0 right-0 max-h-48 overflow-y-auto bg-black border border-t-0 border-white/10 shadow-xl z-[600]"
           >
             {#each searchResults as result}
               <li>
