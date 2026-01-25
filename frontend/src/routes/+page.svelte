@@ -5,6 +5,7 @@
   import DatePicker from "$lib/components/DatePicker.svelte";
   import CatalogView from "$lib/components/CatalogView.svelte";
   import PastSessionsView from "$lib/components/PastSessionsView.svelte";
+  import AboutView from "$lib/components/AboutView.svelte";
   import { Button } from "$lib/components/ui/button";
   import { Label } from "$lib/components/ui/label";
   import {
@@ -18,6 +19,7 @@
   import { MultiStepLoader } from "$lib/components/ui/multi-step-loader";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import Clock from "lucide-svelte/icons/clock";
+  import Info from "lucide-svelte/icons/info";
   import { fade } from "svelte/transition";
   import { quintOut } from "svelte/easing";
   import Separator from "$lib/components/ui/separator/separator.svelte";
@@ -38,6 +40,7 @@
 
   // Past sessions state
   let showPastSessions = false;
+  let showAbout = false;
 
   const loadingStates = [
     { text: "initializing observation session..." },
@@ -121,7 +124,13 @@
   }
 
   async function togglePastSessions() {
+    if (showAbout) showAbout = false;
     showPastSessions = !showPastSessions;
+  }
+
+  async function toggleAbout() {
+    if (showPastSessions) showPastSessions = false;
+    showAbout = !showAbout;
   }
 </script>
 
@@ -164,7 +173,7 @@
       <Tabs.Content value="session" class="mt-6">
         <Card class="border border-white/10 bg-neutral-900/60 shadow-lg">
           <CardContent class="p-6 space-y-10">
-            {#if !showPastSessions}
+            {#if !showPastSessions && !showAbout}
               <!-- Original Generator Content -->
               <div transition:fade={{ duration: 300, easing: quintOut }}>
                 <!-- Location Section -->
@@ -230,32 +239,52 @@
                     </Button>
 
                     <Separator class="my-10" />
-                    <!-- Past Sessions Toggle Button -->
-                    <button
-                      on:click={togglePastSessions}
-                      class="w-full mt-4 flex items-center justify-between p-4 bg-gradient-to-r from-neutral-900/80 to-neutral-900/60 border border-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer"
-                    >
-                      <div class="flex items-center gap-3">
-                        <div
-                          class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors"
-                        >
-                          <Clock class="w-4 h-4 text-green-400" />
+
+                    <div class="space-y-3">
+                      <!-- Past Sessions Toggle Button -->
+                      <button
+                        on:click={togglePastSessions}
+                        class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-neutral-900/80 to-neutral-900/60 border border-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer"
+                      >
+                        <div class="flex items-center gap-3">
+                          <div
+                            class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors"
+                          >
+                            <Clock class="w-4 h-4 text-green-400" />
+                          </div>
+                          <span
+                            class="text-sm font-medium lowercase text-foreground"
+                          >
+                            view past session plans
+                          </span>
                         </div>
-                        <span
-                          class="text-sm font-medium lowercase text-foreground"
-                        >
-                          {showPastSessions
-                            ? "back to generator"
-                            : "view past session plans"}
-                        </span>
-                      </div>
-                      <ChevronRight
-                        class="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-300"
-                        style="transform: rotate({showPastSessions
-                          ? 90
-                          : 0}deg);"
-                      />
-                    </button>
+                        <ChevronRight
+                          class="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-300"
+                        />
+                      </button>
+
+                      <!-- About AstroBuddy Toggle Button -->
+                      <button
+                        on:click={toggleAbout}
+                        class="w-full flex items-center justify-between p-4 bg-gradient-to-r from-neutral-900/80 to-neutral-900/60 border border-white/10 hover:border-white/20 transition-all duration-300 group cursor-pointer"
+                      >
+                        <div class="flex items-center gap-3">
+                          <div
+                            class="flex items-center justify-center w-8 h-8 rounded-full bg-green-500/20 group-hover:bg-green-500/30 transition-colors"
+                          >
+                            <Info class="w-4 h-4 text-green-400" />
+                          </div>
+                          <span
+                            class="text-sm font-medium lowercase text-foreground"
+                          >
+                            about astrobuddy
+                          </span>
+                        </div>
+                        <ChevronRight
+                          class="w-5 h-5 text-muted-foreground group-hover:text-foreground group-hover:translate-x-1 transition-all duration-300"
+                        />
+                      </button>
+                    </div>
 
                     {#if error}
                       <div
@@ -308,10 +337,15 @@
                   {/if}
                 </section>
               </div>
-            {:else}
+            {:else if showPastSessions}
               <!-- Past Sessions List -->
               <div transition:fade={{ duration: 300, easing: quintOut }}>
                 <PastSessionsView on:back={togglePastSessions} />
+              </div>
+            {:else if showAbout}
+              <!-- About AstroBuddy -->
+              <div transition:fade={{ duration: 300, easing: quintOut }}>
+                <AboutView on:back={toggleAbout} />
               </div>
             {/if}
           </CardContent>

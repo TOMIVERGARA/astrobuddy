@@ -109,7 +109,7 @@
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 space-y-2">
               <div class="flex items-center gap-2">
-                <Clock class="w-4 h-4 text-blue-400" />
+                <Clock class="w-4 h-4 text-green-400" />
                 <span class="text-sm font-mono text-muted-foreground">
                   {formatDate(session.created_at)}
                 </span>
