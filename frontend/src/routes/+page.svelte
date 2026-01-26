@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import MapPicker from "$lib/components/MapPicker.svelte";
   import TelescopeInput from "$lib/components/TelescopeInput.svelte";
@@ -37,6 +38,23 @@
   function handleTelescopeChange(event: CustomEvent<string>) {
     telescope = event.detail;
   }
+
+  // Get user's current location on mount
+  onMount(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+        },
+        (error) => {
+          console.log(
+            "Geolocation permission denied or unavailable, using default location",
+          );
+        },
+      );
+    }
+  });
 
   let loading = false;
   let error: string | null = null;
