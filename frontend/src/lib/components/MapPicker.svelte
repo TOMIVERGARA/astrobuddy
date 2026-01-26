@@ -282,6 +282,24 @@
     background: #333;
   }
 
+  /* Prevent white flash on map load */
+  :global(.leaflet-container) {
+    background: #000 !important;
+  }
+
+  :global(.leaflet-tile-pane) {
+    filter: grayscale(100%) contrast(110%);
+    background: #000;
+  }
+
+  :global(.leaflet-pane) {
+    background: transparent;
+  }
+
+  :global(.leaflet-tile) {
+    background: #000;
+  }
+
   /* Invert map tiles for a truly dark mode if desired, otherwise standard dark tiles are fine. 
        This adds a subtle monochrome filter to the map tiles */
   :global(.leaflet-tile-pane) {

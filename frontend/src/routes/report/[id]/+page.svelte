@@ -789,8 +789,22 @@
 </svelte:head>
 
 <style>
+  /* Prevent white flash on map load */
+  :global(.leaflet-container) {
+    background: #000 !important;
+  }
+
   :global(.leaflet-tile-pane) {
     filter: grayscale(100%) contrast(110%);
+    background: #000;
+  }
+
+  :global(.leaflet-pane) {
+    background: transparent;
+  }
+
+  :global(.leaflet-tile) {
+    background: #000;
   }
 
   :global(.astro-map-marker) {
