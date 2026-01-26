@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { page } from "$app/stores";
+  import { browser } from "$app/environment";
   import { Button } from "$lib/components/ui/button";
   import {
     Card,
@@ -10,12 +11,18 @@
     CardTitle,
   } from "$lib/components/ui/card";
   import { Skeleton } from "$lib/components/ui/skeleton";
+  import * as HoverCard from "$lib/components/ui/hover-card";
   import { CheckCircle2, ArrowRight, XCircle } from "lucide-svelte";
 
   let reportId = $page.params.id;
   let loading = true;
   let error: string | null = null;
   let reportData: any = null;
+  let mapElement: HTMLElement;
+  let hoverMap: any = null;
+  let hoverMarker: any = null;
+  let leaflet: any = null;
+  let isHoverOpen = false;
 
   // Helper functions
   function getCloudCoverIcon(clouds: number): string {
@@ -28,6 +35,71 @@
   function getPlanetImage(planetName: string): string {
     const name = planetName.toLowerCase();
     return `/planets/${name}.png`;
+  }
+
+  async function initHoverMap() {
+    if (!browser || !mapElement || !reportData || hoverMap) return;
+
+    if (!leaflet) {
+      leaflet = (await import("leaflet")).default;
+    }
+
+    const customIcon = leaflet.divIcon({
+      className: "astro-map-marker",
+      html: '<div class="astro-map-marker-inner"></div>',
+      iconSize: [24, 36],
+      iconAnchor: [12, 34],
+    });
+
+    hoverMap = leaflet
+      .map(mapElement, {
+        zoomControl: false,
+        attributionControl: false,
+      })
+      .setView([reportData.location.lat, reportData.location.lon], 10);
+
+    leaflet
+      .tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+        {
+          subdomains: "abcd",
+          maxZoom: 19,
+        },
+      )
+      .addTo(hoverMap);
+
+    hoverMarker = leaflet
+      .marker([reportData.location.lat, reportData.location.lon], {
+        icon: customIcon,
+      })
+      .addTo(hoverMap);
+
+    // Pequeño delay para que el mapa se renderice correctamente
+    setTimeout(() => {
+      hoverMap?.invalidateSize();
+    }, 100);
+  }
+
+  function zoomInHover() {
+    if (hoverMap) hoverMap.zoomIn();
+  }
+
+  function zoomOutHover() {
+    if (hoverMap) hoverMap.zoomOut();
+  }
+
+  function handleHoverOpen() {
+    isHoverOpen = true;
+    setTimeout(initHoverMap, 50);
+  }
+
+  function handleHoverClose() {
+    isHoverOpen = false;
+    if (hoverMap) {
+      hoverMap.remove();
+      hoverMap = null;
+      hoverMarker = null;
+    }
   }
 
   onMount(async () => {
@@ -70,6 +142,12 @@
 <div
   class="min-h-screen text-foreground py-12 px-6 font-sans selection:bg-accent selection:text-accent-foreground relative z-10"
 >
+  <!-- Overlay when hover card is open -->
+  {#if isHoverOpen}
+    <div
+      class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm pointer-events-none"
+    />
+  {/if}
   {#if loading}
     <div class="max-w-7xl mx-auto space-y-6">
       <Skeleton class="h-12 w-64" />
@@ -159,11 +237,53 @@
           <CardContent class="space-y-3">
             <div>
               <p class="text-sm text-muted-foreground lowercase">coordinates</p>
-              <p class="font-mono text-sm">
-                {reportData.location.lat.toFixed(4)}, {reportData.location.lon.toFixed(
-                  4,
-                )}
-              </p>
+              <HoverCard.Root
+                openDelay={200}
+                closeDelay={100}
+                onOpenChange={(open) =>
+                  open ? handleHoverOpen() : handleHoverClose()}
+              >
+                <HoverCard.Trigger
+                  class="font-mono text-sm cursor-help hover:text-green-400 transition-colors"
+                >
+                  {reportData.location.lat.toFixed(4)}, {reportData.location.lon.toFixed(
+                    4,
+                  )}
+                </HoverCard.Trigger>
+                <HoverCard.Content
+                  side="right"
+                  class="w-96 h-80 p-0 border-white/10 bg-neutral-900/95 backdrop-blur-sm overflow-hidden z-50"
+                >
+                  <div class="w-full h-full relative">
+                    <div
+                      bind:this={mapElement}
+                      class="w-full h-full bg-black"
+                    ></div>
+                    <!-- Custom Zoom Controls -->
+                    <div class="absolute bottom-4 right-4 z-[400]">
+                      <div
+                        class="flex flex-col rounded-md overflow-hidden shadow-lg border border-white/10 bg-black/70 backdrop-blur-sm"
+                      >
+                        <button
+                          type="button"
+                          class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+                          on:click={zoomInHover}
+                        >
+                          +
+                        </button>
+                        <div class="h-px bg-white/10"></div>
+                        <button
+                          type="button"
+                          class="px-3 py-2 text-lg font-semibold text-white hover:bg-white/10 transition-colors"
+                          on:click={zoomOutHover}
+                        >
+                          −
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </HoverCard.Content>
+              </HoverCard.Root>
             </div>
             <div>
               <p class="text-sm text-muted-foreground lowercase">
@@ -657,3 +777,59 @@
     </div>
   {/if}
 </div>
+
+<!-- Leaflet CSS -->
+<svelte:head>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+</svelte:head>
+
+<style>
+  :global(.leaflet-tile-pane) {
+    filter: grayscale(100%) contrast(110%);
+  }
+
+  :global(.astro-map-marker) {
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :global(.astro-map-marker-inner) {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background-color: #4ade80;
+    transform: translateY(2px);
+  }
+
+  :global(.astro-map-marker-inner::after) {
+    /* Tail of the pin */
+    content: "";
+    position: absolute;
+    top: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 6px 0 6px;
+    border-color: #4ade80 transparent transparent transparent;
+  }
+
+  :global(.astro-map-marker-inner::before) {
+    /* Inner white circle */
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 9999px;
+    background-color: #000;
+  }
+</style>
