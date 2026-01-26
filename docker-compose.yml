@@ -9,7 +9,7 @@ services:
       - ./backend/data:/app/backend/data
       - ./backend/app:/app/app
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=your-api-key
 
   frontend:
     image: node:18-alpine
