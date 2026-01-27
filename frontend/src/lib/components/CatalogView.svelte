@@ -79,7 +79,7 @@
     error = null;
     try {
       const response = await fetch(
-        `http://${API_URL}/catalog/objects?search=${encodeURIComponent(searchQuery)}`,
+        `${API_URL}/catalog/objects?search=${encodeURIComponent(searchQuery)}`,
       );
       if (!response.ok) {
         throw new Error("Search failed");
@@ -124,7 +124,7 @@
     deletingId = objectToDelete.id;
     try {
       const response = await fetch(
-        `http://${API_URL}/catalog/objects/${encodeURIComponent(deletingId)}`,
+        `${API_URL}/catalog/objects/${encodeURIComponent(deletingId)}`,
         {
           method: "DELETE",
         },

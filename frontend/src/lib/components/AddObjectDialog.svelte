@@ -81,7 +81,7 @@
 
     try {
       const response = await fetch(
-        `http://${API_URL}/catalog/lookup/${encodeURIComponent(searchId)}`,
+        `${API_URL}/catalog/lookup/${encodeURIComponent(searchId)}`,
       );
 
       if (!response.ok) {
@@ -140,7 +140,7 @@
 
     try {
       const response = await fetch(
-        `http://${API_URL}/catalog/images/${encodeURIComponent(searchId)}`,
+        `${API_URL}/catalog/images/${encodeURIComponent(searchId)}`,
       );
 
       if (!response.ok) {
