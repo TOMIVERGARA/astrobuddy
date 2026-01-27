@@ -17,6 +17,7 @@ from app.services.weather import WeatherService
 from app.services.ai import AIService
 from app.services.pdf import generate_pdf
 from app.services.charts import ChartsService
+from app.services.admin import AdminService
 
 app = FastAPI(title="AstroBuddy API")
 
@@ -42,6 +43,7 @@ catalog_svc = CatalogService()
 weather_svc = WeatherService()
 ai_svc = AIService()
 charts_svc = ChartsService()
+admin_svc = AdminService()
 
 def convert_to_serializable(obj):
     """Convert numpy types and other non-serializable objects to native Python types"""
@@ -716,3 +718,83 @@ async def get_past_sessions():
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching past sessions: {str(e)}")
+
+# =============================================
+# ADMIN ENDPOINTS
+# =============================================
+
+@app.post("/admin/seed-messier")
+async def seed_messier():
+    """
+    Seeds the database with Messier catalog objects.
+    Clears existing Messier objects and imports from JSON.
+    """
+    try:
+        print("[ADMIN] Seeding Messier catalog...")
+        result = admin_svc.seed_messier_catalog()
+        print(f"[ADMIN] Seed result: {result}")
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error seeding database: {str(e)}")
+
+@app.get("/admin/export")
+async def export_database():
+    """
+    Exports the entire database as JSON.
+    Returns a downloadable JSON file with all objects.
+    """
+    try:
+        print("[ADMIN] Exporting database...")
+        objects = admin_svc.export_database()
+        print(f"[ADMIN] Exported {len(objects)} objects")
+        
+        # Return as JSON response with download headers
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            content=objects,
+            headers={
+                "Content-Disposition": f"attachment; filename=astrobuddy-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
+            }
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error exporting database: {str(e)}")
+
+class ImportRequest(BaseModel):
+    objects: list
+    replace: bool = False
+
+@app.post("/admin/import")
+async def import_database(request: ImportRequest):
+    """
+    Imports objects into the database from JSON.
+    
+    Args:
+        objects: List of object dictionaries
+        replace: If True, clears the database before importing
+    """
+    try:
+        print(f"[ADMIN] Importing {len(request.objects)} objects (replace={request.replace})...")
+        result = admin_svc.import_database(request.objects, request.replace)
+        print(f"[ADMIN] Import result: {result}")
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error importing database: {str(e)}")
+
+@app.get("/admin/stats")
+async def get_database_stats():
+    """
+    Returns statistics about the database.
+    """
+    try:
+        stats = admin_svc.get_database_stats()
+        return stats
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error getting database stats: {str(e)}")
