@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { browser } from "$app/environment";
+  import { API_URL } from "$lib/config";
   import { Button } from "$lib/components/ui/button";
   import {
     Card,
@@ -104,7 +105,7 @@
 
   onMount(async () => {
     try {
-      const response = await fetch(`http://localhost:8000/reports/${reportId}`);
+      const response = await fetch(`${API_URL}/reports/${reportId}`);
       if (!response.ok) {
         throw new Error("report not found");
       }
@@ -121,7 +122,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:8000/download-pdf/${reportData.pdf_filename}`,
+        `${API_URL}/download-pdf/${reportData.pdf_filename}`,
       );
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);

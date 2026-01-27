@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
+  import { API_URL } from "$lib/config";
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Card, CardContent } from "$lib/components/ui/card";
@@ -54,7 +55,7 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch("http://localhost:8000/catalog/objects");
+      const response = await fetch(`${API_URL}/catalog/objects`);
       if (!response.ok) {
         throw new Error("Failed to load catalog");
       }
@@ -78,7 +79,7 @@
     error = null;
     try {
       const response = await fetch(
-        `http://localhost:8000/catalog/objects?search=${encodeURIComponent(searchQuery)}`,
+        `http://${API_URL}/catalog/objects?search=${encodeURIComponent(searchQuery)}`,
       );
       if (!response.ok) {
         throw new Error("Search failed");
@@ -123,7 +124,7 @@
     deletingId = objectToDelete.id;
     try {
       const response = await fetch(
-        `http://localhost:8000/catalog/objects/${encodeURIComponent(deletingId)}`,
+        `http://${API_URL}/catalog/objects/${encodeURIComponent(deletingId)}`,
         {
           method: "DELETE",
         },

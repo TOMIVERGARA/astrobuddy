@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
+  import { API_URL } from "$lib/config";
   import MapPicker from "$lib/components/MapPicker.svelte";
   import TelescopeInput from "$lib/components/TelescopeInput.svelte";
   import DatePicker from "$lib/components/DatePicker.svelte";
@@ -87,20 +88,17 @@
     currentStep = 0;
 
     try {
-      const response = await fetch(
-        "http://localhost:8000/generate-plan-stream",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lat,
-            lon,
-            date: new Date(date).toISOString(),
-            telescope,
-            language,
-          }),
-        },
-      );
+      const response = await fetch(`${API_URL}/generate-plan-stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lat,
+          lon,
+          date: new Date(date).toISOString(),
+          telescope,
+          language,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to start plan generation");

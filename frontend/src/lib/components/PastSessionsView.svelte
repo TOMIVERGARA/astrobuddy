@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { API_URL } from "$lib/config";
   import Clock from "lucide-svelte/icons/clock";
   import ChevronRight from "lucide-svelte/icons/chevron-right";
   import CheckCircle2 from "lucide-svelte/icons/check-circle-2";
@@ -14,7 +15,7 @@
     loading = true;
     error = null;
     try {
-      const response = await fetch("http://localhost:8000/past-sessions");
+      const response = await fetch(`${API_URL}/past-sessions`);
       if (response.ok) {
         const data = await response.json();
         sessions = data.sessions || [];

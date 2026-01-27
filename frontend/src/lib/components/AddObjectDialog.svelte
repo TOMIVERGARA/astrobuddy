@@ -2,6 +2,7 @@
   import { createEventDispatcher, tick } from "svelte";
   import { slide, fly } from "svelte/transition";
   import { toast } from "svelte-sonner";
+  import { API_URL } from "$lib/config";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
@@ -80,7 +81,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:8000/catalog/lookup/${encodeURIComponent(searchId)}`,
+        `http://${API_URL}/catalog/lookup/${encodeURIComponent(searchId)}`,
       );
 
       if (!response.ok) {
@@ -139,7 +140,7 @@
 
     try {
       const response = await fetch(
-        `http://localhost:8000/catalog/images/${encodeURIComponent(searchId)}`,
+        `http://${API_URL}/catalog/images/${encodeURIComponent(searchId)}`,
       );
 
       if (!response.ok) {
@@ -195,7 +196,7 @@
         throw new Error("Please fill in all required fields");
       }
 
-      const response = await fetch("http://localhost:8000/catalog/objects", {
+      const response = await fetch(`${API_URL}/catalog/objects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
