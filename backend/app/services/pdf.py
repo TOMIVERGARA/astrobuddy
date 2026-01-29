@@ -439,6 +439,39 @@ def generate_pdf(data: dict, output_path: str = "output.pdf"):
         </div>
         {% endfor %}
 
+        <!-- OTHER VISIBLE OBJECTS (NON-FEATURED) -->
+        {% if non_featured_objects and non_featured_objects|length > 0 %}
+        <h2 style="margin-top: 30px;">Other Visible Objects</h2>
+        <p style="font-size:0.9em; color:#666; margin-top:-10px; margin-bottom: 15px;">
+            Additional {{ non_featured_objects|length }} objects visible tonight, ordered by magnitude.
+        </p>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; margin-top: 10px;">
+            <thead>
+                <tr style="background: #f4f4f4; border-bottom: 2px solid #000;">
+                    <th style="padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">ID</th>
+                    <th style="padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">Name</th>
+                    <th style="padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">Type</th>
+                    <th style="padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">Constellation</th>
+                    <th style="padding: 8px; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">Mag</th>
+                    <th style="padding: 8px; text-align: left; font-weight: bold; text-transform: uppercase; font-size: 0.8em;">Size</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for obj in non_featured_objects %}
+                <tr style="border-bottom: 1px solid #e0e0e0; {% if loop.index % 2 == 0 %}background: #fafafa;{% endif %}">
+                    <td style="padding: 6px 8px; font-weight: bold;">{{ obj.id }}</td>
+                    <td style="padding: 6px 8px;">{{ obj.name if obj.name else '—' }}</td>
+                    <td style="padding: 6px 8px;">{{ obj.type if obj.type else '—' }}</td>
+                    <td style="padding: 6px 8px;">{{ obj.constellation if obj.constellation else '—' }}</td>
+                    <td style="padding: 6px 8px; text-align: center; font-family: monospace;">{{ obj.mag if obj.mag else '—' }}</td>
+                    <td style="padding: 6px 8px;">{{ obj.size if obj.size else '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
     </body>
     </html>
     """

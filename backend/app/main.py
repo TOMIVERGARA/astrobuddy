@@ -140,9 +140,11 @@ async def generate_plan_with_progress(req: PlanRequest):
         # Merge
         final_objects = []
         tech_map = {obj['id']: obj for obj in enriched_objects}
+        featured_ids = set()
         
         for ai_obj in ai_plan.get('objects', []):
             o_id = ai_obj.get('id')
+            featured_ids.add(o_id)
             if o_id in tech_map:
                 merged = tech_map[o_id].copy()
                 merged.update(ai_obj) 
@@ -150,6 +152,14 @@ async def generate_plan_with_progress(req: PlanRequest):
             else:
                 final_objects.append(ai_obj)
         ai_plan['objects'] = final_objects
+        
+        # Get non-featured visible objects, sorted by magnitude (lower is better)
+        non_featured_objects = [
+            obj for obj in enriched_objects 
+            if obj.get('id') not in featured_ids
+        ]
+        # Sort by magnitude (None values go to end)
+        non_featured_objects.sort(key=lambda x: (x.get('mag') is None, x.get('mag') or 999))
         
         # 7. Charts
         yield f"data: {json.dumps({'step': 9, 'message': 'generating visibility charts...'})}\n\n"
@@ -169,6 +179,7 @@ async def generate_plan_with_progress(req: PlanRequest):
             "planets": planets,
             "weather": weather_info, 
             "ai": ai_plan,
+            "non_featured_objects": non_featured_objects,
             "charts": charts_svc,
             "telescope": req.telescope
         }
@@ -193,7 +204,8 @@ async def generate_plan_with_progress(req: PlanRequest):
                 "astro": convert_to_serializable(data["astro"]),
                 "planets": convert_to_serializable(data["planets"]),
                 "weather": convert_to_serializable(data["weather"]),
-                "ai": convert_to_serializable(data["ai"])
+                "ai": convert_to_serializable(data["ai"]),
+                "non_featured_objects": convert_to_serializable(data["non_featured_objects"])
             }
             json.dump(serializable_data, f, indent=2)
         print(f"   [DATA] Report data saved to {report_json_path}")
@@ -290,9 +302,11 @@ async def create_plan(req: PlanRequest):
         # Merge logic
         final_objects = []
         tech_map = {obj['id']: obj for obj in enriched_objects}
+        featured_ids = set()
         
         for ai_obj in ai_plan.get('objects', []):
             o_id = ai_obj.get('id')
+            featured_ids.add(o_id)
             if o_id in tech_map:
                 merged = tech_map[o_id].copy()
                 merged.update(ai_obj) 
@@ -300,6 +314,14 @@ async def create_plan(req: PlanRequest):
             else:
                 final_objects.append(ai_obj)
         ai_plan['objects'] = final_objects
+        
+        # Get non-featured visible objects, sorted by magnitude (lower is better)
+        non_featured_objects = [
+            obj for obj in enriched_objects 
+            if obj.get('id') not in featured_ids
+        ]
+        # Sort by magnitude (None values go to end)
+        non_featured_objects.sort(key=lambda x: (x.get('mag') is None, x.get('mag') or 999))
         
         # 7. PDF Generation
         print("7. [PDF] Rendering document...")
@@ -311,6 +333,7 @@ async def create_plan(req: PlanRequest):
             "planets": planets,
             "weather": weather_info, 
             "ai": ai_plan,
+            "non_featured_objects": non_featured_objects,
             "charts": charts_svc,
             "telescope": req.telescope
         }

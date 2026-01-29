@@ -776,6 +776,61 @@
             </CardContent>
           </Card>
         {/if}
+
+        <!-- Additional Visible Objects (Non-Featured) -->
+        {#if reportData.non_featured_objects && reportData.non_featured_objects.length > 0}
+          <Card
+            class="border border-white/10 bg-neutral-900/60 shadow-lg lg:col-span-4"
+          >
+            <CardHeader>
+              <CardTitle class="lowercase text-lg">
+                other visible objects
+              </CardTitle>
+              <CardDescription class="lowercase">
+                {reportData.non_featured_objects.length} additional objects visible
+                tonight but not featured
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2"
+              >
+                {#each reportData.non_featured_objects as obj}
+                  <div
+                    class="p-2 rounded-lg border border-white/5 bg-black/20 hover:border-white/10 transition-colors"
+                  >
+                    <div class="flex items-start justify-between mb-1">
+                      <div>
+                        <h4 class="font-bold text-sm">{obj.id}</h4>
+                        {#if obj.name}
+                          <p class="text-xs text-muted-foreground truncate">
+                            {obj.name}
+                          </p>
+                        {/if}
+                      </div>
+                      {#if obj.mag}
+                        <span
+                          class="text-xs px-1.5 py-0.5 rounded-none bg-white/5 font-mono"
+                        >
+                          {obj.mag}
+                        </span>
+                      {/if}
+                    </div>
+                    <div class="text-xs text-muted-foreground space-y-0.5">
+                      <p>{obj.type}</p>
+                      {#if obj.constellation}
+                        <p>{obj.constellation}</p>
+                      {/if}
+                      {#if obj.size}
+                        <p>{obj.size}</p>
+                      {/if}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </CardContent>
+          </Card>
+        {/if}
       </div>
     </div>
   {/if}
