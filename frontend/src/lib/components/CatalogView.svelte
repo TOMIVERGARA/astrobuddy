@@ -233,7 +233,7 @@
       </div>
     {:else}
       <!-- Pagination Controls -->
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
         <p class="text-sm text-muted-foreground">
           showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(
             currentPage * ITEMS_PER_PAGE,

@@ -170,7 +170,9 @@
   {:else if reportData}
     <div class="max-w-7xl mx-auto space-y-8">
       <!-- Header -->
-      <div class="flex items-center justify-between">
+      <div
+        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
         <div class="flex items-center gap-4">
           <a
             href="/"
@@ -205,7 +207,7 @@
             </p>
           </div>
         </div>
-        <Button on:click={downloadPdf} class="lowercase">
+        <Button on:click={downloadPdf} class="lowercase w-full md:w-auto">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"

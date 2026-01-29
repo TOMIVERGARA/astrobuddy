@@ -8,8 +8,8 @@
   import { Label } from "$lib/components/ui/label";
 
   // Props for binding
-  export let aperture: number = 200;
-  export let focalLength: number = 1200;
+  export let aperture: number = 130;
+  export let focalLength: number = 650;
   export let type: "reflector" | "refractor" | "maksutov" = "reflector";
 
   const dispatch = createEventDispatcher();
@@ -28,16 +28,27 @@
 
 <div class="space-y-4">
   <!-- Type Selector (Toggle Group) -->
-  <ToggleGroup bind:value={type} type="single" class="w-full">
-    <ToggleGroupItem value="reflector" class="flex-1">Reflector</ToggleGroupItem
+  <ToggleGroup
+    bind:value={type}
+    type="single"
+    class="w-full flex-col md:flex-row"
+  >
+    <ToggleGroupItem
+      value="reflector"
+      class="flex-1 w-full md:w-auto h-16 md:h-10">Reflector</ToggleGroupItem
     >
-    <ToggleGroupItem value="refractor" class="flex-1">Refractor</ToggleGroupItem
+    <ToggleGroupItem
+      value="refractor"
+      class="flex-1 w-full md:w-auto h-16 md:h-10">Refractor</ToggleGroupItem
     >
-    <ToggleGroupItem value="maksutov" class="flex-1">Maksutov</ToggleGroupItem>
+    <ToggleGroupItem
+      value="maksutov"
+      class="flex-1 w-full md:w-auto h-16 md:h-10">Maksutov</ToggleGroupItem
+    >
   </ToggleGroup>
 
   <!-- Numeric Inputs -->
-  <div class="grid grid-cols-2 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="space-y-2">
       <Label
         for="aperture"

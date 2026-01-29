@@ -176,7 +176,7 @@
   <main class="w-full space-y-8">
     <Tabs.Root value="session" class="w-full">
       <Tabs.List
-        class="grid w-full grid-cols-2 border-b border-border rounded-none bg-transparent"
+        class="grid w-full grid-cols-1 h-auto md:grid-cols-2 border-b border-border rounded-none bg-transparent"
       >
         <Tabs.Trigger
           value="session"

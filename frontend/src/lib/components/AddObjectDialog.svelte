@@ -270,7 +270,7 @@
 
 <Dialog.Root {open} onOpenChange={handleOpenChange}>
   <Dialog.Content
-    class="max-w-4xl max-h-[90vh] transition-all duration-500 ease-in-out flex flex-col"
+    class="w-full h-[100dvh] max-w-none rounded-none border-0 md:rounded-lg md:max-w-4xl md:h-auto md:max-h-[90vh] md:border transition-all duration-500 ease-in-out flex flex-col"
   >
     <Dialog.Header>
       <Dialog.Title>add new object</Dialog.Title>

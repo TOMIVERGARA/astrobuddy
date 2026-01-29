@@ -70,7 +70,7 @@ class WeatherService:
         hourly_summary = []
         for index, row in window_df.iterrows():
             hourly_summary.append({
-                "time": row['date'].strftime("%H:%00"), # Just hour for display
+                "time": row['date'].strftime("%H:00"), # Just hour for display
                 "ts": row['date'].isoformat(),
                 "temp": round(row['temperature_2m'], 1),
                 "clouds": round(row['cloud_cover'], 0),
