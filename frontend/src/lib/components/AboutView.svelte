@@ -85,7 +85,7 @@
               astronomical calculations
             </h4>
             <p class="text-sm text-muted-foreground">
-              using <span class="text-green-400 font-mono">astropy</span> and precise
+              using <span class="text-green-400 font-mono">skyfield</span> and precise
               ephemerides, astrobuddy calculates your local astronomical darkness
               window (when the sun is more than 18° below the horizon), sunrise/sunset
               times, moon phase and illumination, and planetary positions for your
@@ -221,10 +221,10 @@
               visualization & reporting
             </h4>
             <p class="text-sm text-muted-foreground">
-              finally, astrobuddy generates visibility charts showing altitude
-              vs time for each object, overlays weather conditions, and compiles
-              everything into a comprehensive PDF report. the report includes
-              moon phase images from
+              finally, astrobuddy compiles detailed visibility metrics for each
+              object, integrates weather conditions, and generates a
+              comprehensive PDF report. the report includes moon phase images
+              from
               <span class="text-green-400 font-mono">NASA SVS</span>, technical
               ephemerides, AI-generated insights, and a complete observation
               schedule.
@@ -243,11 +243,19 @@
     </div>
     <div class="space-y-3">
       <div class="p-4 bg-neutral-900/40 border border-white/10 space-y-2">
+        <h4 class="font-medium text-green-400 font-mono">skyfield</h4>
+        <p class="text-sm text-muted-foreground">
+          elegant python astronomy library. used for high-precision ephemeris
+          calculations, rise/set times, moon phases, and coordinate
+          transformations.
+        </p>
+      </div>
+
+      <div class="p-4 bg-neutral-900/40 border border-white/10 space-y-2">
         <h4 class="font-medium text-green-400 font-mono">astropy</h4>
         <p class="text-sm text-muted-foreground">
           community-developed core python library for astronomy. used for
-          coordinate transformations, time calculations, and celestial
-          mechanics.
+          catalog querying and additional coordinate utilities.
         </p>
       </div>
 
